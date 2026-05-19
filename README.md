@@ -1,1 +1,1 @@
-# labfisica_USAC
+# Labfisica-usac
