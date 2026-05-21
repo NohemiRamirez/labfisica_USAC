@@ -19,22 +19,15 @@ function renderMath(latex) {
   if (!latex) return ''
   let m = latex.trim()
 
-  // Fracciones — debe ir primero
   m = m.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g,
     '<span class="frac"><span class="num">$1</span><span class="den">$2</span></span>')
-
-  // Raíces
   m = m.replace(/\\sqrt\{([^}]+)\}/g,
     '√<span style="border-top:1px solid #000;padding:0 2px">$1</span>')
-
-  // Superíndices y subíndices con llaves
   m = m.replace(/\^\{([^}]+)\}/g, '<sup>$1</sup>')
   m = m.replace(/_\{([^}]+)\}/g, '<sub>$1</sub>')
-  // Sin llaves — solo un carácter
   m = m.replace(/\^([^{\\,\s\d])(?![a-zA-Z])/g, '<sup>$1</sup>')
   m = m.replace(/_([^{\\,\s\d])(?![a-zA-Z])/g, '<sub>$1</sub>')
 
-  // Símbolos griegos (orden importa: más largos primero)
   const greek = [
     ['\\alpha', 'α'], ['\\beta', 'β'], ['\\gamma', 'γ'], ['\\delta', 'δ'],
     ['\\epsilon', 'ε'], ['\\varepsilon', 'ε'], ['\\zeta', 'ζ'], ['\\eta', 'η'],
@@ -51,7 +44,6 @@ function renderMath(latex) {
     m = m.replace(new RegExp(cmd.replace(/\\/g, '\\\\') + '(?![a-zA-Z])', 'g'), sym)
   })
 
-  // Operadores
   const ops = [
     ['\\pm', '±'], ['\\mp', '∓'], ['\\times', '×'], ['\\div', '÷'],
     ['\\cdot', '·'], ['\\leq', '≤'], ['\\geq', '≥'], ['\\neq', '≠'],
@@ -68,14 +60,12 @@ function renderMath(latex) {
     m = m.replace(new RegExp(cmd.replace(/\\/g, '\\\\') + '(?![a-zA-Z])', 'g'), sym)
   })
 
-  // Funciones matemáticas
   const funcs = ['sin', 'cos', 'tan', 'cot', 'sec', 'csc', 'log', 'ln',
     'exp', 'lim', 'max', 'min', 'sup', 'inf', 'det', 'mod', 'sen']
   funcs.forEach((f) => {
     m = m.replace(new RegExp(`\\\\${f}(?![a-zA-Z])`, 'g'), f)
   })
 
-  // Limpiar comandos restantes
   m = m.replace(/\\[a-zA-Z]+\{([^}]*)\}/g, '$1')
   m = m.replace(/\\[a-zA-Z]+/g, '')
   m = m.replace(/[{}]/g, '')
@@ -90,15 +80,12 @@ function latexInline(text) {
   t = t.replace(/\\textit\{([^}]+)\}/g, '<em>$1</em>')
   t = t.replace(/\\emph\{([^}]+)\}/g, '<em>$1</em>')
   t = t.replace(/\\underline\{([^}]+)\}/g, '<u>$1</u>')
-  // Math inline
   t = t.replace(/\$([^$\n]+)\$/g, (_, m) => renderMath(m))
-  // Operadores comunes fuera de $ (en tablas)
   t = t.replace(/\\pm(?![a-zA-Z])/g, '±')
   t = t.replace(/\\times(?![a-zA-Z])/g, '×')
   t = t.replace(/\\leq(?![a-zA-Z])/g, '≤')
   t = t.replace(/\\geq(?![a-zA-Z])/g, '≥')
   t = t.replace(/\\approx(?![a-zA-Z])/g, '≈')
-  // Limpiar
   t = t.replace(/\\[a-zA-Z]+\{([^}]*)\}/g, '$1')
   t = t.replace(/\\[a-zA-Z]+/g, '')
   t = t.replace(/[{}]/g, '')
@@ -114,15 +101,12 @@ function buildTable(tabContent, caption, tabNum) {
 
   if (!lines.length) return ''
 
-  const parseRow = (line) =>
-    line.split('&').map((cell) => latexInline(cell.trim()))
-
+  const parseRow = (line) => line.split('&').map((cell) => latexInline(cell.trim()))
   const [headerLine, ...dataLines] = lines
   const headers = parseRow(headerLine)
   const dataRows = dataLines.filter((l) => l.trim()).map(parseRow)
 
-  const thead = `<thead><tr>${headers.map((h) =>
-    `<th>${h}</th>`).join('')}</tr></thead>`
+  const thead = `<thead><tr>${headers.map((h) => `<th>${h}</th>`).join('')}</tr></thead>`
   const tbody = `<tbody>${dataRows.map((row) =>
     `<tr>${row.map((c) => `<td>${c}</td>`).join('')}</tr>`
   ).join('')}</tbody>`
@@ -138,162 +122,103 @@ function latexToHtml(text, images, counters, secNum) {
   if (!text) return ''
   let html = text
 
-  // Subsecciones numeradas
   let subCount = 0
   html = html.replace(/\\subsection\*?\{([^}]+)\}/g, (_, title) => {
     subCount++
     return `<h3 class="doc-subsection">${secNum}.${subCount}. ${title}</h3>`
   })
-
-  // Subsubsecciones
   html = html.replace(/\\subsubsection\*?\{([^}]+)\}/g, (_, title) =>
     `<h4 class="doc-subsubsection">${title}</h4>`
   )
 
-  // Formato
   html = html.replace(/\\textbf\{([^}]+)\}/g, '<strong>$1</strong>')
   html = html.replace(/\\textit\{([^}]+)\}/g, '<em>$1</em>')
   html = html.replace(/\\emph\{([^}]+)\}/g, '<em>$1</em>')
   html = html.replace(/\\underline\{([^}]+)\}/g, '<u>$1</u>')
 
-  // Ecuaciones numeradas
-  html = html.replace(
-    /\\begin\{equation\*?\}([\s\S]*?)\\end\{equation\*?\}/g,
-    (_, content) => {
-      counters.eq++
-      const c = content.trim().replace(/\\label\{[^}]+\}/g, '').trim()
-      return `<div class="doc-equation">
-        <span class="doc-eq-body">${renderMath(c)}</span>
-        <span class="doc-eq-num">(${counters.eq})</span>
-      </div>`
-    }
-  )
+  html = html.replace(/\\begin\{equation\*?\}([\s\S]*?)\\end\{equation\*?\}/g, (_, content) => {
+    counters.eq++
+    const c = content.trim().replace(/\\label\{[^}]+\}/g, '').trim()
+    return `<div class="doc-equation">
+      <span class="doc-eq-body">${renderMath(c)}</span>
+      <span class="doc-eq-num">(${counters.eq})</span>
+    </div>`
+  })
 
-  // Align
-  html = html.replace(
-    /\\begin\{align\*?\}([\s\S]*?)\\end\{align\*?\}/g,
-    (_, content) => {
-      counters.eq++
-      const lines = content.trim()
-        .split('\\\\')
-        .map((l) => l.replace(/&/g, '').replace(/\\label\{[^}]+\}/g, '').trim())
-        .filter(Boolean)
-        .map((l) => `<div style="margin:2px 0">${renderMath(l)}</div>`)
-        .join('')
-      return `<div class="doc-equation">
-        <div style="flex:1;text-align:center">${lines}</div>
-        <span class="doc-eq-num">(${counters.eq})</span>
-      </div>`
-    }
-  )
+  html = html.replace(/\\begin\{align\*?\}([\s\S]*?)\\end\{align\*?\}/g, (_, content) => {
+    counters.eq++
+    const lines = content.trim().split('\\\\')
+      .map((l) => l.replace(/&/g, '').replace(/\\label\{[^}]+\}/g, '').trim())
+      .filter(Boolean)
+      .map((l) => `<div style="margin:2px 0">${renderMath(l)}</div>`)
+      .join('')
+    return `<div class="doc-equation">
+      <div style="flex:1;text-align:center">${lines}</div>
+      <span class="doc-eq-num">(${counters.eq})</span>
+    </div>`
+  })
 
-  // Inline math
   html = html.replace(/\$([^$\n]+)\$/g, (_, m) => renderMath(m))
 
-  // Tablas
-  // --- Tablas ---
-  html = html.replace(
-    /\\begin\{table\}(?:\[.*?\])?([\s\S]*?)\\end\{table\}/g,
-    (_, content) => {
-      counters.tab++
-      // Buscamos el tabular y el caption específicamente dentro de este bloque
-      const tabMatch = content.match(/\\begin\{tabular\}\{[^}]+\}([\s\S]*?)\\end\{tabular\}/)
-      const capMatch = content.match(/\\caption\{([^}]*)\}/)
+  html = html.replace(/\\begin\{table\}(?:\[.*?\])?([\s\S]*?)\\end\{table\}/g, (_, content) => {
+    counters.tab++
+    const tabMatch = content.match(/\\begin\{tabular\}\{[^}]+\}([\s\S]*?)\\end\{tabular\}/)
+    const capMatch = content.match(/\\caption\{([^}]*)\}/)
+    const tabularData = tabMatch ? tabMatch[1] : ''
+    const caption = capMatch ? capMatch[1].trim() : ''
+    return buildTable(tabularData, caption, counters.tab)
+  })
 
-      const tabularData = tabMatch ? tabMatch[1] : ''
-      const caption = capMatch ? capMatch[1].trim() : ''
+  html = html.replace(/\\begin\{tabular\}\{[^}]+\}([\s\S]*?)\\end\{tabular\}/g, (_, tabContent) => {
+    counters.tab++
+    return buildTable(tabContent, '', counters.tab)
+  })
 
-      return buildTable(tabularData, caption, counters.tab)
-    }
-  )
+  html = html.replace(/\\begin\{figure\}(?:\[.*?\])?([\s\S]*?)\\end\{figure\}/g, (_, content) => {
+    counters.fig++
+    const imgMatch = content.match(/\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}/)
+    const capMatch = content.match(/\\caption\{([^}]*)\}/)
+    const fn = imgMatch ? imgMatch[1].trim() : ''
+    const caption = capMatch ? capMatch[1].trim() : ''
+    const img = images.find((i) => i.filename === fn || i.filename.endsWith(fn))
+    return `<div class="doc-figure">
+      ${img ? `<img src="${img.dataUrl}" class="doc-img" alt="${esc(caption)}" />` : `<div class="doc-img-placeholder">[Figura: ${esc(fn)}]</div>`}
+      <p class="doc-caption">Figura ${counters.fig}: ${esc(caption)}</p>
+    </div>`
+  })
 
-  // Fallback: tabular sin estar envuelto en \begin{table}
-  html = html.replace(
-    /\\begin\{tabular\}\{[^}]+\}([\s\S]*?)\\end\{tabular\}/g,
-    (_, tabContent) => {
-      // Evitar contar doble si ya fue procesado
-      counters.tab++
-      return buildTable(tabContent, '', counters.tab)
-    }
-  )
+  html = html.replace(/\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}/g, (_, filename) => {
+    counters.fig++
+    const fn = filename.trim()
+    const img = images.find((i) => i.filename === fn || i.filename.endsWith(fn))
+    return `<div class="doc-figure">
+      ${img ? `<img src="${img.dataUrl}" class="doc-img" />` : `<div class="doc-img-placeholder">[${esc(fn)}]</div>`}
+    </div>`
+  })
 
-  // --- Figuras ---
-  html = html.replace(
-    /\\begin\{figure\}(?:\[.*?\])?([\s\S]*?)\\end\{figure\}/g,
-    (_, content) => {
-      counters.fig++
-      const imgMatch = content.match(/\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}/)
-      const capMatch = content.match(/\\caption\{([^}]*)\}/)
+  html = html.replace(/\\begin\{itemize\}([\s\S]*?)\\end\{itemize\}/g, (_, content) => {
+    const items = content.split(/\\item/).slice(1)
+      .map((i) => `<li>${latexInline(i.replace(/^\[[^\]]*\]\s*/, '').trim())}</li>`).join('')
+    return `<ul class="doc-list">${items}</ul>`
+  })
 
-      const fn = imgMatch ? imgMatch[1].trim() : ''
-      const caption = capMatch ? capMatch[1].trim() : ''
-      const img = images.find((i) => i.filename === fn || i.filename.endsWith(fn))
+  html = html.replace(/\\begin\{enumerate\}([\s\S]*?)\\end\{enumerate\}/g, (_, content) => {
+    const items = content.split(/\\item/).slice(1)
+      .map((i) => `<li>${latexInline(i.replace(/^\[[^\]]*\]\s*/, '').trim())}</li>`).join('')
+    return `<ol class="doc-list">${items}</ol>`
+  })
 
-      return `<div class="doc-figure">
-        ${img
-          ? `<img src="${img.dataUrl}" class="doc-img" alt="${esc(caption)}" />`
-          : `<div class="doc-img-placeholder">[Figura: ${esc(fn)}]</div>`}
-        <p class="doc-caption">Figura ${counters.fig}: ${esc(caption)}</p>
-      </div>`
-    }
-  )
+  html = html.replace(/\\begin\{thebibliography\}\{[^}]*\}([\s\S]*?)\\end\{thebibliography\}/g, (_, content) => {
+    const items = content.split(/\\bibitem\{[^}]*\}/).slice(1)
+      .map((i, idx) => `<li>[${idx + 1}] ${latexInline(i.trim())}</li>`).join('')
+    return `<ul class="doc-bib">${items}</ul>`
+  })
 
-  // includegraphics sin figure
-  html = html.replace(
-    /\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}/g,
-    (_, filename) => {
-      // Solo procesa si no fue parte de un \begin{figure} ya procesado
-      counters.fig++
-      const fn = filename.trim()
-      const img = images.find((i) => i.filename === fn || i.filename.endsWith(fn))
-      return `<div class="doc-figure">
-        ${img
-          ? `<img src="${img.dataUrl}" class="doc-img" />`
-          : `<div class="doc-img-placeholder">[${esc(fn)}]</div>`}
-      </div>`
-    }
-  )
-
-  // Listas
-  html = html.replace(
-    /\\begin\{itemize\}([\s\S]*?)\\end\{itemize\}/g,
-    (_, content) => {
-      const items = content.split(/\\item/).slice(1)
-        .map((i) => `<li>${latexInline(i.replace(/^\[[^\]]*\]\s*/, '').trim())}</li>`)
-        .join('')
-      return `<ul class="doc-list">${items}</ul>`
-    }
-  )
-
-  html = html.replace(
-    /\\begin\{enumerate\}([\s\S]*?)\\end\{enumerate\}/g,
-    (_, content) => {
-      const items = content.split(/\\item/).slice(1)
-        .map((i) => `<li>${latexInline(i.replace(/^\[[^\]]*\]\s*/, '').trim())}</li>`)
-        .join('')
-      return `<ol class="doc-list">${items}</ol>`
-    }
-  )
-
-  // Bibliografía
-  html = html.replace(
-    /\\begin\{thebibliography\}\{[^}]*\}([\s\S]*?)\\end\{thebibliography\}/g,
-    (_, content) => {
-      const items = content.split(/\\bibitem\{[^}]*\}/).slice(1)
-        .map((i, idx) => `<li>[${idx + 1}] ${latexInline(i.trim())}</li>`)
-        .join('')
-      return `<ul class="doc-bib">${items}</ul>`
-    }
-  )
-
-  // Operadores sueltos (fuera de $)
   html = html.replace(/\\pm(?![a-zA-Z])/g, '±')
   html = html.replace(/\\times(?![a-zA-Z])/g, '×')
   html = html.replace(/\\leq(?![a-zA-Z])/g, '≤')
   html = html.replace(/\\geq(?![a-zA-Z])/g, '≥')
   html = html.replace(/\\approx(?![a-zA-Z])/g, '≈')
-
-  // Limpiar
   html = html.replace(/\\newline/g, '<br/>')
   html = html.replace(/\\label\{[^}]+\}/g, '')
   html = html.replace(/\\ref\{([^}]+)\}/g, '<span class="doc-ref">[ref]</span>')
@@ -306,7 +231,6 @@ function latexToHtml(text, images, counters, secNum) {
   html = html.replace(/\\[a-zA-Z]+/g, '')
   html = html.replace(/[{}]/g, '')
 
-  // Párrafos
   const parts = html.split(/\n\n+/)
   html = parts.map((part) => {
     const t = part.trim()
@@ -332,13 +256,10 @@ function buildDocumentHTML(reportData, tableData, axisLabels) {
     .map((a) => `${esc(a.carnet)} ${esc(a.nombre)}`.trim())
     .join(', ')
 
-  const isEnabled = (id) =>
-    ['header', 'resultados'].includes(id) || enabledSections.includes(id)
-
+  const isEnabled = (id) => ['header', 'resultados'].includes(id) || enabledSections.includes(id)
   const counters = { eq: 0, tab: 0, fig: 0, sec: 0 }
   let body = ''
 
-  // Resumen
   if (isEnabled('resumen') && resumen) {
     body += `<div class="doc-abstract">
       <p class="doc-abstract-title">Resumen</p>
@@ -346,7 +267,6 @@ function buildDocumentHTML(reportData, tableData, axisLabels) {
     </div>`
   }
 
-  // Objetivos
   if (isEnabled('objetivos')) {
     const gen = objGenerales.filter((o) => o.trim())
     const esp = objEspecificos.filter((o) => o.trim())
@@ -355,19 +275,12 @@ function buildDocumentHTML(reportData, tableData, axisLabels) {
       const s = counters.sec
       body += `<div class="doc-section">
         <h2 class="doc-section-title">${s}. Objetivos</h2>
-        ${gen.length ? `
-          <h3 class="doc-subsection">${s}.1. Generales</h3>
-          <ul class="doc-list">${gen.map((o) => `<li>${esc(o)}</li>`).join('')}</ul>
-        ` : ''}
-        ${esp.length ? `
-          <h3 class="doc-subsection">${s}.${gen.length ? 2 : 1}. Específicos</h3>
-          <ul class="doc-list">${esp.map((o) => `<li>${esc(o)}</li>`).join('')}</ul>
-        ` : ''}
+        ${gen.length ? `<h3 class="doc-subsection">${s}.1. Generales</h3><ul class="doc-list">${gen.map((o) => `<li>${esc(o)}</li>`).join('')}</ul>` : ''}
+        ${esp.length ? `<h3 class="doc-subsection">${s}.${gen.length ? 2 : 1}. Específicos</h3><ul class="doc-list">${esp.map((o) => `<li>${esc(o)}</li>`).join('')}</ul>` : ''}
       </div>`
     }
   }
 
-  // Secciones LaTeX
   const latexOrder = [
     { id: 'marcoTeorico', label: 'Marco Teórico' },
     { id: 'disenio', label: 'Diseño Experimental' },
@@ -388,7 +301,7 @@ function buildDocumentHTML(reportData, tableData, axisLabels) {
     </div>`
   })
 
-  // ── CSS del documento ────────────────────────
+  // ── CSS del documento CORREGIDO ────────────────
   const css = `
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body {
@@ -409,8 +322,8 @@ html, body {
 }
 .doc-header { text-align: center; margin-bottom: 20px; }
 .doc-course  { font-size: 10pt; color: #333; margin-bottom: 4px; }
-.doc-title   { font-size: 14pt; font-weight: bold; line-height: 1.3; margin: 6px 0; }
-.doc-authors { font-size: 10pt; margin: 4px 0; }
+.doc-title   { font-size: 18pt; font-weight: bold; line-height: 1.3; margin: 6px 0; }
+.doc-authors { font-size: 12pt; margin: 4px 0; }
 .doc-date    { font-size: 10pt; color: #555; }
 .doc-abstract { margin: 16px 0; }
 .doc-abstract-title { font-weight: bold; font-size: 10pt; text-align: center; margin-bottom: 4px; }
@@ -420,50 +333,29 @@ html, body {
 .doc-subsection    { font-size: 11pt; font-weight: bold; margin: 10px 0 5px; text-align: left; }
 .doc-subsubsection { font-size: 11pt; font-style: italic; margin: 8px 0 4px; }
 .doc-text { margin: 5px 0; text-align: justify; font-size: 11pt; }
-/* Fracciones */
-.frac { display: inline-flex; flex-direction: column; align-items: center;
-        vertical-align: middle; margin: 0 2px; }
+.frac { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; margin: 0 2px; }
 .num  { border-bottom: 1px solid #000; padding: 0 3px; font-size: 10pt; line-height: 1.2; }
 .den  { padding: 0 3px; font-size: 10pt; line-height: 1.2; }
-/* Ecuaciones */
-.doc-equation {
-  display: flex; align-items: center; justify-content: center;
-  margin: 10px 0; width: 100%;
-}
+.doc-equation { display: flex; align-items: center; justify-content: center; margin: 10px 0; width: 100%; }
 .doc-eq-body { flex: 1; text-align: center; font-style: italic; padding: 0 20px; }
 .doc-eq-num  { font-size: 10pt; white-space: nowrap; min-width: 40px; text-align: right; }
-/* Figuras */
 .doc-figure  { text-align: center; margin: 14px 0; width: 100%; }
-.doc-img     { max-width: 80%; max-height: 280px; object-fit: contain;
-               display: block; margin: 0 auto; }
-.doc-img-placeholder {
-  padding: 14px; background: #f5f5f5; border: 1px dashed #ccc;
-  color: #888; font-size: 10pt; display: inline-block;
-}
-/* Tablas */
+.doc-img     { max-width: 80%; max-height: 280px; object-fit: contain; display: block; margin: 0 auto; }
+.doc-img-placeholder { padding: 14px; background: #f5f5f5; border: 1px dashed #ccc; color: #888; font-size: 10pt; display: inline-block; }
 .doc-table-wrap { margin: 12px auto; text-align: center; width: 100%; }
 .doc-table { border-collapse: collapse; margin: 0 auto; font-size: 10pt; }
-.doc-table th {
-  border-top: 2px solid #000; border-bottom: 1px solid #000;
-  padding: 4px 12px; font-weight: bold;
-}
+.doc-table th { border-top: 2px solid #000; border-bottom: 1px solid #000; padding: 4px 12px; font-weight: bold; }
 .doc-table td { padding: 3px 12px; }
 .doc-table tbody tr:last-child td { border-bottom: 1px solid #000; }
-/* Captions */
 .doc-caption { font-size: 9pt; color: #333; text-align: center; margin-top: 5px; display: block; }
-/* Listas */
 .doc-list { padding-left: 20px; margin: 6px 0; font-size: 11pt; }
 .doc-list li { margin: 2px 0; text-align: justify; }
 .doc-bib { list-style: none; padding: 0; }
 .doc-bib li { margin: 6px 0; padding-left: 16px; text-indent: -16px; font-size: 10pt; }
 .doc-ref { font-size: 9pt; color: #555; }
-/* Número de página */
-.doc-page-num {
-  position: absolute; bottom: 12mm; left: 0; right: 0;
-  text-align: center; font-size: 10pt; color: #333;
-}
-  /* Añade esto al final de tus estilos CSS */
-.doc-section, .doc-text, .doc-figure, .doc-table-wrap, .doc-equation {
+
+/* REGLAS CORREGIDAS: Evitan que se corten SOLO elementos gráficos, dejando que el texto fluya libremente */
+.doc-figure, .doc-table-wrap, .doc-equation {
   page-break-inside: avoid;
   break-inside: avoid;
 }
@@ -508,14 +400,13 @@ function DocumentPreview({ reportData, tableData, axisLabels, fitResult, onClose
     doc.close()
   }, [htmlContent])
 
-  // ── Genera PDF dividiendo en páginas ──────────
+  // ── Genera PDF dividiendo en páginas (Corregido) ──────────
   async function handleDownloadPDF() {
     if (!iframeRef.current) return
 
     const iframeDoc = iframeRef.current.contentDocument
     if (!iframeDoc) return
 
-    // Agrega CSS de impresión temporalmente al iframe
     const printStyle = iframeDoc.createElement('style')
     printStyle.id = 'print-style'
     printStyle.textContent = `
@@ -535,7 +426,7 @@ function DocumentPreview({ reportData, tableData, axisLabels, fitResult, onClose
         width: 100% !important;
         min-height: auto !important;
       }
-      /* Evita cortes en elementos importantes */
+      /* Reglas estrictas de impresión SIN .doc-section ni .doc-text */
       .doc-figure,
       .doc-table-wrap,
       .doc-equation {
@@ -557,7 +448,6 @@ function DocumentPreview({ reportData, tableData, axisLabels, fitResult, onClose
     // Usa el diálogo de impresión del iframe
     iframeRef.current.contentWindow.print()
 
-    // Limpia el estilo después
     setTimeout(() => {
       const s = iframeDoc.getElementById('print-style')
       if (s) s.remove()
