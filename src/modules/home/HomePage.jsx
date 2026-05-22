@@ -3,6 +3,8 @@ import { useRef } from 'react'
 import useStore from '../../store/useStore'
 import { getAllLabs, formatDate } from '../../utils/labStorage'
 import styles from './HomePage.module.css'
+import { saveLab } from '../../utils/labStorage'
+
 
 // Íconos SVG inline
 const IconNewReport = () => (
@@ -43,11 +45,48 @@ function HomePage() {
   // Obtiene los 3 laboratorios más recientes del localStorage
   const recentLabs = getAllLabs().slice(0, 3)
 
-  // Nuevo reporte: resetea el store y navega a la tabla de datos
   function handleNewReport() {
-    resetStore()
-    navigate('/data-table')
+  // Crea un nuevo laboratorio vacío en localStorage
+  const newLab = {
+    id:          crypto.randomUUID(),
+    name:        'Nuevo laboratorio',
+    description: '',
+    createdAt:   new Date().toISOString(),
+    updatedAt:   new Date().toISOString(),
+    tableData:   [],
+    fitResult:   null,
+    axisLabels:  { x: 'x', y: 'y' },
+    reportData:  {
+      curso: '', seccion: '', titulo: '',
+      autores: [{ id: crypto.randomUUID(), carnet: '', nombre: '' }],
+      fecha: '', resumen: '',
+      objGenerales: [''], objEspecificos: [''],
+      enabledSections: [
+        'resumen', 'objetivos', 'marcoTeorico',
+        'disenio', 'discusion', 'conclusiones', 'bibliografia'
+      ],
+      latexSections: {
+        marcoTeorico: '', disenio: '', resultados: '',
+        discusion: '', conclusiones: '', bibliografia: '',
+      },
+      images: [],
+    },
   }
+
+  // Guarda en localStorage y carga al store
+  saveLab(newLab)
+  resetStore()
+  useStore.getState().loadLabIntoStore(newLab)
+  useStore.getState().setCurrentLab({
+    id:          newLab.id,
+    name:        newLab.name,
+    description: newLab.description,
+    createdAt:   newLab.createdAt,
+    updatedAt:   newLab.updatedAt,
+  })
+
+  navigate('/data-table')
+}
 
   // Abre el selector de archivos JSON
   function handleOpenFile() {
